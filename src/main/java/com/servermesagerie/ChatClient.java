@@ -1,10 +1,9 @@
 package com.servermesagerie;
 
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -14,6 +13,8 @@ public class ChatClient {
 
     public static void main(String[] args)
     {
+        final Logger logger = LoggerFactory.getLogger(Producer.class);
+
         Properties prop = new Properties();
         prop.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
         prop.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
@@ -21,9 +22,26 @@ public class ChatClient {
 
         final KafkaProducer<String, String> producer = new KafkaProducer<String, String>(prop);
 
-        ProducerRecord<String, String> record = new ProducerRecord<>("sample-topic", "key1", "value1");
+        for (int i = 0; i< 10; ++i)
+        {
+            ProducerRecord<String, String> record = new ProducerRecord<>("test-topic", "key_" + i, "value_" + i);
 
-        producer.send(record);
+            producer.send(record, new Callback() {
+                @Override
+                public void onCompletion(RecordMetadata recordMetadata, Exception e) {
+                    if (e == null)
+                    {
+                        logger.info("\nReceived record metadata.\n" +
+                                "Topic: " + recordMetadata.topic() + ", Partition: " + recordMetadata.partition() + ", " +
+                                "Offset: " + recordMetadata.offset() + " @ Timestamp: " + recordMetadata.timestamp() + "\n");
+                    }
+                    else
+                    {
+                        logger.error("Error occured ", e);
+                    }
+                }
+            });
+        }
 
         producer.flush();
         producer.close();
