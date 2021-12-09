@@ -29,6 +29,8 @@ public class ChatServer {
         Thread user = new Thread(){
             public void run()
             {
+                TopicCreator topicCreator = new TopicCreator();
+                topicCreator.createTopic(KafkaConstants.NICKNAMES_TOPIC, "NO");
                 consumer.subscribe(Collections.singleton(KafkaConstants.NICKNAMES_TOPIC));
                 handleMessages();
                 //Messagereceiver m = new Messagereceiver();

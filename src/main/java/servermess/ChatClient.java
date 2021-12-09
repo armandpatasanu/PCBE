@@ -38,6 +38,8 @@ public class ChatClient {
             public void run()
             {
                 do {
+                    TopicCreator topicCreator = new TopicCreator();
+                    topicCreator.createTopic(KafkaConstants.SERVER_CLIENT_TOPIC, userId.toString());
                     consumer.subscribe(Collections.singleton(KafkaConstants.SERVER_CLIENT_TOPIC));
                     System.out.println("Please pick a nickname:");
                     BufferedReader reader = new BufferedReader(
