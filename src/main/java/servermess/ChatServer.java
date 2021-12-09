@@ -67,7 +67,7 @@ public class ChatServer {
                     User user = new User(nickname, UUID.fromString(userId));
                     users.add(user);
                     System.out.println(user.getNickname());
-                    ProducerRecord<Long, String> response = new ProducerRecord<>(KafkaConstants.SERVER_CLIENT_TOPIC, "User was created successfully!");
+                    ProducerRecord<Long, String> response = new ProducerRecord<>(KafkaConstants.SERVER_CLIENT_TOPIC+"-"+userId, "User was created successfully!");
                     kafkaProducer.send(response);
                 }
             }
