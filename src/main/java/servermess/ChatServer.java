@@ -64,6 +64,7 @@ public class ChatServer {
                     String userId = parts[1];
                     User user = new User(nickname, UUID.fromString(userId));
                     users.add(user);
+                    System.out.println(user.getNickname());
                     ProducerRecord<Long, String> response = new ProducerRecord<>(KafkaConstants.SERVER_CLIENT_TOPIC, "User was created successfully!");
                     kafkaProducer.send(response);
                 }
@@ -73,7 +74,7 @@ public class ChatServer {
                     consumerRecord.key(), consumerRecord.value(),
                     consumerRecord.partition(), consumerRecord.offset()));*/
 
-            consumer.commitAsync();
+            consumer.commitSync();
         }
 
         consumer.close();

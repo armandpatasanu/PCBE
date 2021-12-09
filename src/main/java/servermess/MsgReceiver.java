@@ -35,11 +35,13 @@ public class MsgReceiver extends Thread{
                     continue;
                 }
             }
-            for (ConsumerRecord<Long, String> record : consumerRecords)
-            {
-                System.out.println(record.value());
-            }
-            consumer.commitAsync();
+
+                for (ConsumerRecord<Long, String> record : consumerRecords) {
+                    System.out.println(record.value());
+                }
+
+           consumer.commitSync();
+
             /*consumerRecords.forEach(consumerRecord -> LOGGER.info("Consumer Record:({} {})",
                     consumerRecord.key(), consumerRecord.value(),
                     consumerRecord.partition(), consumerRecord.offset()));

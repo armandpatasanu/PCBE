@@ -8,6 +8,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="PCBE[C]" />
         <module name="PCBE" />
+        <module name="incercare_pcbe" />
       </profile>
     </annotationProcessing>
   </component>

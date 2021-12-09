@@ -54,15 +54,19 @@ public class ChatClient {
                     }
 
                 }while (!isLoggedIn);
+
                 /*Messagereceiver m = new Messagereceiver();
                 m.consumeMessageClient();*/
                 MsgReceiver m = new MsgReceiver(consumer);
+
                 m.start();
                 topicThreadMap.put(KafkaConstants.SERVER_CLIENT_TOPIC, m);
                 startChat();
+
             }
         };
         chat.start();
+
     }
 
     public static void startChat()
