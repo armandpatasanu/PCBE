@@ -5,8 +5,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -34,35 +32,40 @@ public class ChatClient {
     };
 
     public static void main(String[] args) {
-        Thread chat = new Thread(){
-            public void run()
-            {
+        Thread chat = new Thread() {
+            public void run() {
+                TopicUtils topicCreator = new TopicUtils();
+
+                String nickname = "";
                 do {
-                    TopicCreator topicCreator = new TopicCreator();
-                    topicCreator.createTopic(KafkaConstants.SERVER_CLIENT_TOPIC, userId.toString());
-                    consumer.subscribe(Collections.singleton(KafkaConstants.SERVER_CLIENT_TOPIC+"-"+userId.toString()));
+
+
                     System.out.println("Please pick a nickname:");
                     BufferedReader reader = new BufferedReader(
                             new InputStreamReader(System.in));
                     try {
-                        String nickname = reader.readLine();
-                        if (nickname.length()!=0 && nickname != null)
-                        {
+                        nickname = reader.readLine();
+                        if (nickname.length() != 0 && nickname != null) {
                             isLoggedIn = true;
+                            String topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + nickname;
+                            if (!topicCreator.checkTopicExist(topic))
+                                topicCreator.createTopic(KafkaConstants.SERVER_CLIENT_TOPIC, nickname);
+                            MsgReceiver m = new MsgReceiver(consumer, topic);
+                            m.start();
+                            topicThreadMap.put(KafkaConstants.SERVER_CLIENT_TOPIC, m);
+
                             requestUserCreation(nickname, userId);
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
 
-                }while (!isLoggedIn);
+                } while (!isLoggedIn);
 
                 /*Messagereceiver m = new Messagereceiver();
                 m.consumeMessageClient();*/
-                MsgReceiver m = new MsgReceiver(consumer);
 
-                m.start();
-                topicThreadMap.put(KafkaConstants.SERVER_CLIENT_TOPIC, m);
+
                 startChat();
 
             }
@@ -71,17 +74,15 @@ public class ChatClient {
 
     }
 
-    public static void startChat()
-    {
+    public static void startChat() {
         printMenu();
         boolean stop = false;
-        do{
+        do {
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(System.in));
             try {
                 String option = reader.readLine();
-                switch (option)
-                {
+                switch (option) {
                     case "1":
                         listTopics();
                         break;
@@ -104,7 +105,7 @@ public class ChatClient {
                 e.printStackTrace();
             }
 
-        }while(!stop);
+        } while (!stop);
     }
 
     private static void pickUser() {
@@ -121,13 +122,12 @@ public class ChatClient {
 
     private static void listTopics() {
 
-        for (String topic:topicList) {
+        for (String topic : topicList) {
             System.out.println(topic);
         }
     }
 
-    public static void printMenu()
-    {
+    public static void printMenu() {
         System.out.println("Select the option number:");
         System.out.println("1. List topics");
         System.out.println("2. List online users");
@@ -136,14 +136,12 @@ public class ChatClient {
         System.out.println("5.Exit");
     }
 
-    public static void requestUserCreation(String nickname, UUID userId)
-    {
-        ProducerRecord<Long, String> userRecord = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "NICK/"+nickname+"*"+userId.toString());
+    public static void requestUserCreation(String nickname, UUID userId) {
+        ProducerRecord<Long, String> userRecord = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "NICK/" + nickname + "*" + userId.toString());
         kafkaProducer.send(userRecord);
     }
 
-    public static void consumeMessages()
-    {
+    public static void consumeMessages() {
         int recordsCount = 0;
         while (true) {
             ConsumerRecords<Long, String> consumerRecords = consumer.poll(1000);
@@ -156,8 +154,7 @@ public class ChatClient {
                     continue;
                 }
             }
-            for (ConsumerRecord<Long, String> record : consumerRecords)
-            {
+            for (ConsumerRecord<Long, String> record : consumerRecords) {
 
             }
 
@@ -172,7 +169,7 @@ public class ChatClient {
         //LOGGER.info("Done");
     }
 
-    public void consumeMessageClient(){
+    public void consumeMessageClient() {
 
         int recordsCount = 0;
 
@@ -187,8 +184,7 @@ public class ChatClient {
                     continue;
                 }
             }
-            for (ConsumerRecord<Long, String> record : consumerRecords)
-            {
+            for (ConsumerRecord<Long, String> record : consumerRecords) {
 
             }
 

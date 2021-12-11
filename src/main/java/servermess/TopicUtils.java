@@ -10,12 +10,26 @@ import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
-public class TopicCreator {
-    public TopicCreator()
-    {
-
+public class TopicUtils {
+    public TopicUtils() {
     }
 
+    public boolean checkTopicExist(String topic) {
+        Properties properties = new Properties();
+        properties.put(
+                AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConstants.BOOTSTRAP_SERVERS);
+        //Admin admin = Admin.create(properties);
+
+        try (Admin admin = Admin.create(properties)) {
+
+          return admin.listTopics().names().get().stream().anyMatch(topicName -> topicName.equalsIgnoreCase(topic));
+        } catch (ExecutionException ex) {
+            ex.printStackTrace();
+        } catch (InterruptedException ex) {
+            ex.printStackTrace();
+        }
+        return false;
+    }
     public void createTopic(String topic, String userId)
     {
         Properties properties = new Properties();
