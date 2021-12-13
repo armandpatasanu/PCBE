@@ -19,6 +19,7 @@ public class ChatServer {
     private static final Producer<String, String> kafkaProducer = KafkaConfig.getProducer();
     private static final Logger LOGGER = LoggerFactory.getLogger(Messagereceiver.class);
     private static ArrayList<User> users = new ArrayList<>();
+    private static ArrayList<String> topicList = new ArrayList<String>();
 
     private static final int GIVE_UP = 100;
 
@@ -27,8 +28,10 @@ public class ChatServer {
             public void run()
             {
                 TopicUtils topicCreator = new TopicUtils();
-                topicCreator.createTopic(KafkaConstants.NICKNAMES_TOPIC);
-                topicCreator.createTopic(KafkaConstants.PING_TOPIC);
+                if (!topicCreator.checkTopicExist(KafkaConstants.NICKNAMES_TOPIC))
+                    topicCreator.createTopic(KafkaConstants.NICKNAMES_TOPIC);
+                if (!topicCreator.checkTopicExist(KafkaConstants.PING_TOPIC))
+                    topicCreator.createTopic(KafkaConstants.PING_TOPIC);
                 consumer.subscribe(Collections.singleton(KafkaConstants.NICKNAMES_TOPIC));
                 PingHandler p = new PingHandler();
                 p.start();
@@ -40,27 +43,17 @@ public class ChatServer {
 //verif ca nu exista deja topicul
 
     public static void handleMessages() {
-        int recordsCount = 0;
-
         while (true) {
             ConsumerRecords<String, String> consumerRecords = consumer.poll(Duration.ofMillis(100));
 
             for (ConsumerRecord<String, String> record : consumerRecords) {
                 String command = record.value();
                 if (command.startsWith("NICK/")) {
-                    String commandRemoved = command.substring(5);
-                    String parts[] = commandRemoved.split("\\*");
-                    String nickname = parts[0];
-                    String userId = parts[1];
-                    User user = new User(nickname, UUID.fromString(userId));
-                    users.add(user);
-                    System.out.println(user.getNickname());
-                    System.out.println("User:" + userId);
-                    String topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + nickname;
-                    System.out.println("Topic" + topic);
-                    ProducerRecord<String, String> response = new ProducerRecord<>(topic,"User was created successfully!");
-                    kafkaProducer.send(response);
-                    kafkaProducer.flush();
+                    handleUserCreation(command);
+                }
+                else if (command.startsWith("SUBSCRIBE/")){
+                    handleTopicSubscription(command);
+
                 }
                 else
                 {
@@ -79,5 +72,56 @@ public class ChatServer {
 
         LOGGER.info("Done");
         }
+    }
+
+    public static boolean topicAlreadyExists(String topic)
+    {
+        for (String t : topicList)
+        {
+            if (t.equals(topic))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void handleUserCreation(String command)
+    {
+        String commandRemoved = command.substring(5);
+        String parts[] = commandRemoved.split("\\*");
+        String nickname = parts[0];
+        String userId = parts[1];
+        User user = new User(nickname, UUID.fromString(userId));
+        users.add(user);
+        System.out.println(user.getNickname());
+        System.out.println("User:" + userId);
+        String topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + nickname;
+        System.out.println("Topic" + topic);
+        ProducerRecord<String, String> response = new ProducerRecord<>(topic,"User was created successfully!");
+        kafkaProducer.send(response);
+        kafkaProducer.flush();
+    }
+
+    public static void handleTopicSubscription(String command)
+    {
+        TopicUtils topicUtils = new TopicUtils();
+        String commandRemoved = command.substring(10);
+        System.out.println(commandRemoved);
+        String parts[] = commandRemoved.split("\\*");
+        String topicToSubscribe = parts[0];
+        if (!topicUtils.checkTopicExist(topicToSubscribe))
+        {
+            topicUtils.createTopic(topicToSubscribe);
+        }
+        if (!topicAlreadyExists(topicToSubscribe))
+        {
+            topicList.add(topicToSubscribe);
+        }
+        String nickname = parts[1];
+        String topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + nickname;
+        ProducerRecord<String, String> response = new ProducerRecord<>(topic,"SUBSCRIBE/"+topicToSubscribe);
+        kafkaProducer.send(response);
+        kafkaProducer.flush();
     }
 }
