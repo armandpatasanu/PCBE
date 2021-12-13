@@ -15,8 +15,8 @@ import java.util.UUID;
 
 public class ChatServer {
 
-    private final static Consumer<Long, String> consumer = KafkaConfig.getServerConsumer();
-    private static final Producer<Long, String> kafkaProducer = KafkaConfig.getProducer();
+    private final static Consumer<String, String> consumer = KafkaConfig.getServerConsumer();
+    private static final Producer<String, String> kafkaProducer = KafkaConfig.getProducer();
     private static final Logger LOGGER = LoggerFactory.getLogger(Messagereceiver.class);
     private static ArrayList<User> users = new ArrayList<>();
 
@@ -30,8 +30,6 @@ public class ChatServer {
                 topicCreator.createTopic(KafkaConstants.NICKNAMES_TOPIC, "NO");
                 consumer.subscribe(Collections.singleton(KafkaConstants.NICKNAMES_TOPIC));
                 handleMessages();
-                //Messagereceiver m = new Messagereceiver();
-                //m.consumeMessage();
             }
         };
         user.start();
@@ -42,9 +40,9 @@ public class ChatServer {
         int recordsCount = 0;
 
         while (true) {
-            ConsumerRecords<Long, String> consumerRecords = consumer.poll(Duration.ofMillis(100));
+            ConsumerRecords<String, String> consumerRecords = consumer.poll(Duration.ofMillis(100));
 
-            for (ConsumerRecord<Long, String> record : consumerRecords) {
+            for (ConsumerRecord<String, String> record : consumerRecords) {
                 String command = record.value();
                 if (command.startsWith("NICK/")) {
                     String commandRemoved = command.substring(5);
@@ -57,8 +55,13 @@ public class ChatServer {
                     System.out.println("User:" + userId);
                     String topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + nickname;
                     System.out.println("Topic" + topic);
-                    ProducerRecord<Long, String> response = new ProducerRecord<>(topic, "User was created successfully!");
+                    ProducerRecord<String, String> response = new ProducerRecord<>(topic,"User was created successfully!");
                     kafkaProducer.send(response);
+                    kafkaProducer.flush();
+                }
+                else
+                {
+                    System.out.println(record.topic() + " " + record.value());
                 }
             }
 
