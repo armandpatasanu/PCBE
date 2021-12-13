@@ -59,4 +59,29 @@ public class TopicUtils {
             e.printStackTrace();
         }
     }
+
+    public void createTopic(String topic)
+    {
+        Properties properties = new Properties();
+        properties.put(
+                AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConstants.BOOTSTRAP_SERVERS);
+        //Admin admin = Admin.create(properties);
+
+        try (Admin admin = Admin.create(properties)) {
+            int partitions = 10;
+            short replicationFactor = 1;
+            NewTopic newTopic = new NewTopic(topic, partitions, replicationFactor);
+
+            CreateTopicsResult result = admin.createTopics(
+                    Collections.singleton(newTopic)
+            );
+
+            KafkaFuture<Void> future = result.values().get(topic);
+            future.get();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 }

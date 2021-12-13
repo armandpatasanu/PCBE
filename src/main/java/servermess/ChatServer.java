@@ -27,8 +27,11 @@ public class ChatServer {
             public void run()
             {
                 TopicUtils topicCreator = new TopicUtils();
-                topicCreator.createTopic(KafkaConstants.NICKNAMES_TOPIC, "NO");
+                topicCreator.createTopic(KafkaConstants.NICKNAMES_TOPIC);
+                topicCreator.createTopic(KafkaConstants.PING_TOPIC);
                 consumer.subscribe(Collections.singleton(KafkaConstants.NICKNAMES_TOPIC));
+                PingHandler p = new PingHandler();
+                p.start();
                 handleMessages();
             }
         };
