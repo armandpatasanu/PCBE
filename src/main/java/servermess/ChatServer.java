@@ -9,15 +9,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 public class ChatServer {
 
     private final static Consumer<String, String> consumer = KafkaConfig.getServerConsumer();
     private static final Producer<String, String> kafkaProducer = KafkaConfig.getProducer();
-    private static final Logger LOGGER = LoggerFactory.getLogger(Messagereceiver.class);
+    private static final Producer<String, Set<String>> topicProducer = KafkaConfig.getArrayProducer();
     private static ArrayList<User> users = new ArrayList<>();
     private static ArrayList<String> topicList = new ArrayList<String>();
 
@@ -50,13 +49,12 @@ public class ChatServer {
                 String command = record.value();
                 if (command.startsWith("NICK/")) {
                     handleUserCreation(command);
-                }
-                else if (command.startsWith("SUBSCRIBE/")){
+                } else if (command.startsWith("SUBSCRIBE/")) {
                     handleTopicSubscription(command);
 
-                }
-                else
-                {
+                } else if (command.startsWith("FETCHTOPICS/")) {
+                    handleListTopicRequest(command);
+                } else {
                     System.out.println(record.topic() + " " + record.value());
                 }
             }
@@ -68,9 +66,8 @@ public class ChatServer {
             //consumer.commitSync();
 
 
-        //consumer.close();
+            //consumer.close();
 
-        LOGGER.info("Done");
         }
     }
 
@@ -84,6 +81,27 @@ public class ChatServer {
             }
         }
         return false;
+    }
+
+    public static void handleListTopicRequest(String command)
+    {
+        String topics = "";
+        TopicUtils topicUtils = new TopicUtils();
+        String nickname = command.substring(12);
+        try {
+            topics = topicUtils.getTopics();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        String topic = KafkaConstants.FETCHTOPICS_TOPIC + "-" + nickname;
+        System.out.println(topic);
+        ProducerRecord<String, String> response = new ProducerRecord<>(topic,topics);
+        kafkaProducer.send(response);
+        //ProducerRecord<String, String> response = new ProducerRecord<>(topic,"Topics sended");
+        //kafkaProducer.send(response);
+        //System.out.println(topics);
     }
 
     public static void handleUserCreation(String command)
@@ -110,13 +128,14 @@ public class ChatServer {
         System.out.println(commandRemoved);
         String parts[] = commandRemoved.split("\\*");
         String topicToSubscribe = parts[0];
-        if (!topicUtils.checkTopicExist(topicToSubscribe))
+        String myTopic = KafkaConstants.TOPICS_TOPIC + "-" + topicToSubscribe;
+        if (!topicUtils.checkTopicExist(myTopic))
         {
-            topicUtils.createTopic(topicToSubscribe);
+            topicUtils.createTopic(myTopic);
         }
-        if (!topicAlreadyExists(topicToSubscribe))
+        if (!topicAlreadyExists(myTopic))
         {
-            topicList.add(topicToSubscribe);
+            topicList.add(myTopic);
         }
         String nickname = parts[1];
         String topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + nickname;

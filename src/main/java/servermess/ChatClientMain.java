@@ -1,6 +1,7 @@
 package servermess;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -9,10 +10,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+
+import static org.apache.kafka.common.utils.Utils.sleep;
 
 public class ChatClientMain {
 
@@ -23,12 +23,10 @@ public class ChatClientMain {
     private static Map<String, MsgReceiver> topicThreadMap = new HashMap<String, MsgReceiver>();
     private static ArrayList<String> topicList = new ArrayList<String>();
     private static ChatClient client;
-    private static Consumer<String, ArrayList<String>> serverArrayConsumer = KafkaConfig.getArrayConsumer(userId);
-
+    private static Consumer<String, String> consumer = KafkaConfig.getConsumer(userId);
 
     public static void main(String[] args)
     {
-
         String topic = "";
         do {
 
@@ -47,6 +45,7 @@ public class ChatClientMain {
             }
 
         } while (!isLoggedIn);
+        consumer.subscribe(Collections.singleton(KafkaConstants.FETCHTOPICS_TOPIC + "-" + nickname));
         client = new ChatClient(userId, topic, nickname);
         Thread t = new Thread(client);
         t.start();
@@ -96,8 +95,17 @@ public class ChatClientMain {
         System.out.println("5.Exit");
     }
 
-    private static void listTopics() {
-
+    private static void listTopics()
+    {
+        System.out.println("Available topics are:");
+        ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "FETCHTOPICS/" + nickname);
+        kafkaProducer.send(record);
+        sleep(1500);
+        ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));;
+        System.out.println(records.count());
+        for (ConsumerRecord<String, String> r: records) {
+            System.out.println(r.value());
+        }
     }
 
     private static void pickUser() {
@@ -110,8 +118,6 @@ public class ChatClientMain {
         BufferedReader reader = new BufferedReader(
                 new InputStreamReader(System.in));
         try {
-            String option = reader.readLine();
-            int topic = Integer.parseInt(option);
             String topicToAdd = reader.readLine();
             ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "SUBSCRIBE/"+topicToAdd+"*"+nickname);
             kafkaProducer.send(record);

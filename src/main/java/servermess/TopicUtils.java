@@ -1,13 +1,13 @@
 package servermess;
 
-import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.admin.CreateTopicsResult;
-import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.KafkaFuture;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public class TopicUtils {
@@ -83,5 +83,32 @@ public class TopicUtils {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    public String getTopics() throws ExecutionException, InterruptedException {
+
+        String topics = "";
+        Properties properties = new Properties();
+        properties.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+
+        try (Admin adminClient = Admin.create(properties)) {
+
+            ListTopicsOptions listTopicsOptions = new ListTopicsOptions();
+            listTopicsOptions.listInternal(true);
+
+            Set<String> set =  adminClient.listTopics(listTopicsOptions).names().get();
+            for (String s:set)
+            {
+                if(s.startsWith(KafkaConstants.TOPICS_TOPIC))
+                    topics = topics + "*" + s;
+            }
+            return topics;
+        }
+        catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

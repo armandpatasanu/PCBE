@@ -16,13 +16,12 @@ import java.util.UUID;
 public class MsgReceiver extends Thread {
 
     private final Consumer<String, String> consumer;
-    private static final Logger LOGGER = LoggerFactory.getLogger(Messagereceiver.class);
-
-    private static final int GIVE_UP = 100;
+    private static String serverTopic;
 
     public MsgReceiver(UUID userId, String topic) {
 
         consumer = KafkaConfig.getConsumer(userId);
+        serverTopic = topic;
         consumer.subscribe(Collections.singleton(topic));
         System.out.println("Initialised mess receiver" + topic);
     }
@@ -32,8 +31,19 @@ public class MsgReceiver extends Thread {
             while (true) {
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
                 //System.out.println("Polling");
-                for (ConsumerRecord<String, String> record : records)
+                for (ConsumerRecord<String, String> record : records) {
+                    if (record.topic().equals(serverTopic))
+                    {
+                        if (record.value().startsWith("SUBSCRIBE/"))
+                        {
+                            String topicToSubscribe = record.value().substring(10);
+                            String subscribedTopic = KafkaConstants.TOPICS_TOPIC + "-" + topicToSubscribe;
+                            consumer.subscribe(Collections.singleton(subscribedTopic));
+                            System.out.println("Subscribed to "+ subscribedTopic);
+                        }
+                    }
                     System.out.printf("offset = %d, key = %s, value = %s%n topic = %s%n", record.offset(), record.key(), record.value(), record.topic());
+                }
             }
         } finally {
             consumer.close();
