@@ -97,15 +97,36 @@ public class ChatClientMain {
 
     private static void listTopics()
     {
-        System.out.println("Available topics are:");
-        ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "FETCHTOPICS/" + nickname);
+        String searched_msg ="";
+        boolean condition = false;
+        UUID message_id = UUID.randomUUID();
+        ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "FETCHTOPICS/" + nickname + "*" + message_id.toString());
         kafkaProducer.send(record);
+
         sleep(1500);
-        ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));;
-        System.out.println(records.count());
-        for (ConsumerRecord<String, String> r: records) {
-            System.out.println(r.value());
+        //System.out.println(message_id);
+        do {
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+            //System.out.println("Polling");
+            for (ConsumerRecord<String, String> r: records)
+            {
+                if(r.value().contains(message_id.toString()))
+                {
+                    //System.out.println("Found it!");
+                    condition = true;
+                    searched_msg = r.value();
+                }
+            }
+        }while(!condition);
+
+        String parts[] = searched_msg.split("\\*");
+        int numberOfTopics = Integer.parseInt(parts[0]);
+        System.out.println("Available topics are:");
+        for(int i = 1;i<numberOfTopics-1;i++) {
+            String myTopic = parts[i].replace(KafkaConstants.TOPICS_TOPIC, "");
+            System.out.println(myTopic);
         }
+
     }
 
     private static void pickUser() {
@@ -119,12 +140,12 @@ public class ChatClientMain {
                 new InputStreamReader(System.in));
         try {
             String topicToAdd = reader.readLine();
+            System.out.println("GUCCI");
             ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "SUBSCRIBE/"+topicToAdd+"*"+nickname);
             kafkaProducer.send(record);
         } catch (IOException e) {
             e.printStackTrace();
         }
-
 
     }
 

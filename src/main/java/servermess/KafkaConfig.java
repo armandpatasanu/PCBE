@@ -34,7 +34,7 @@ public class KafkaConfig {
         properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConstants.BOOTSTRAP_SERVERS);
         properties.put(ProducerConfig.CLIENT_ID_CONFIG, "KafkaJava");
         properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         return new KafkaProducer<>(properties);
     }
 
@@ -46,6 +46,7 @@ public class KafkaConfig {
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,"earliest");
+        properties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG,1);
         Consumer<String, String> consumer = new KafkaConsumer<>(properties);
         //consumer.subscribe(Collections.singleton(KafkaConstants.TOPIC));
         return consumer;

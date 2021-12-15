@@ -50,7 +50,7 @@ public class ChatClient implements Runnable{
 
             while (true){
                 sleep(100);
-                ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC,"Ping de la user " + userId);
+                ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.PING_TOPIC,"Ping de la user " + userId);
                 kafkaProducer.send(record);
 
             }

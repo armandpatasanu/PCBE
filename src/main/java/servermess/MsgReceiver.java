@@ -29,7 +29,7 @@ public class MsgReceiver extends Thread {
     public void run() {
         try {
             while (true) {
-                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
+                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(2000));
                 //System.out.println("Polling");
                 for (ConsumerRecord<String, String> record : records) {
                     if (record.topic().equals(serverTopic))

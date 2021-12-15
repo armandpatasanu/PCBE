@@ -3,8 +3,6 @@ package servermess;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.KafkaFuture;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.Set;
@@ -85,7 +83,7 @@ public class TopicUtils {
         }
     }
 
-    public String getTopics() throws ExecutionException, InterruptedException {
+    public Set<String> getTopics() throws ExecutionException, InterruptedException {
 
         String topics = "";
         Properties properties = new Properties();
@@ -96,13 +94,13 @@ public class TopicUtils {
             ListTopicsOptions listTopicsOptions = new ListTopicsOptions();
             listTopicsOptions.listInternal(true);
 
-            Set<String> set =  adminClient.listTopics(listTopicsOptions).names().get();
-            for (String s:set)
-            {
-                if(s.startsWith(KafkaConstants.TOPICS_TOPIC))
-                    topics = topics + "*" + s;
-            }
-            return topics;
+            return adminClient.listTopics(listTopicsOptions).names().get();
+//            for (String s:set)
+//            {
+//                if(s.startsWith(KafkaConstants.TOPICS_TOPIC))
+//                    topics = topics + "*" + s;
+//            }
+//            return topics;
         }
         catch (ExecutionException e) {
             e.printStackTrace();
