@@ -12,6 +12,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
 
 public class ChatServer {
 
@@ -20,6 +22,7 @@ public class ChatServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(Messagereceiver.class);
     private static ArrayList<User> users = new ArrayList<>();
     private static ArrayList<String> topicList = new ArrayList<String>();
+    private static ConcurrentHashMap<String, Long> loggedUsers= new ConcurrentHashMap<>();
 
     private static final int GIVE_UP = 100;
 
@@ -33,7 +36,7 @@ public class ChatServer {
                 if (!topicCreator.checkTopicExist(KafkaConstants.PING_TOPIC))
                     topicCreator.createTopic(KafkaConstants.PING_TOPIC);
                 consumer.subscribe(Collections.singleton(KafkaConstants.NICKNAMES_TOPIC));
-                PingHandler p = new PingHandler();
+                PingHandler p = new PingHandler(users); //in const sa fie conc. hahsmap
                 p.start();
                 handleMessages();
             }
