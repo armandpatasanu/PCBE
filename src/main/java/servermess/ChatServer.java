@@ -13,16 +13,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.HashMap;
+import java.util.Map;
 
 public class ChatServer {
 
     private final static Consumer<String, String> consumer = KafkaConfig.getServerConsumer();
     private static final Producer<String, String> kafkaProducer = KafkaConfig.getProducer();
     private static final Logger LOGGER = LoggerFactory.getLogger(Messagereceiver.class);
-    private static ArrayList<User> users = new ArrayList<>();
+    private static Map<User, Long> users = new ConcurrentHashMap<>();
     private static ArrayList<String> topicList = new ArrayList<String>();
-    private static ConcurrentHashMap<String, Long> loggedUsers= new ConcurrentHashMap<>();
+
 
     private static final int GIVE_UP = 100;
 
@@ -73,7 +73,7 @@ public class ChatServer {
 
         //consumer.close();
 
-        LOGGER.info("Done");
+        //LOGGER.info("Done");
         }
     }
 
@@ -96,7 +96,7 @@ public class ChatServer {
         String nickname = parts[0];
         String userId = parts[1];
         User user = new User(nickname, UUID.fromString(userId));
-        users.add(user);
+        users.put(user, 0L);
         System.out.println(user.getNickname());
         System.out.println("User:" + userId);
         String topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + nickname;
