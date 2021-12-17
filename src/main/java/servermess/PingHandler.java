@@ -30,7 +30,7 @@ public class PingHandler extends Thread {
                 //System.out.println("Polling");
                 for (ConsumerRecord<String, String> record : records)
                 {
-                    //System.out.printf("offset = %d, key = %s, value = %s%n topic = %s%n", record.offset(), record.key(), record.value(), record.topic());
+                    System.out.printf("offset = %d, key = %s, value = %s%n topic = %s%n", record.offset(), record.key(), record.value(), record.topic());
                 }
             }
         } finally {

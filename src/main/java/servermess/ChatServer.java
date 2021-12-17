@@ -51,10 +51,12 @@ public class ChatServer {
                     handleUserCreation(command);
                 } else if (command.startsWith("SUBSCRIBE/")) {
                     handleTopicSubscription(command);
-
                 } else if (command.startsWith("FETCHTOPICS/")) {
                     handleListTopicRequest(command);
-                } else {
+                } else if (command.startsWith("FETCHUSERS/")){
+                    handleListUsersRequest(command);
+                }
+                else {
                     System.out.println(record.topic() + " " + record.value());
                 }
             }
@@ -119,6 +121,53 @@ public class ChatServer {
         while(it1.hasNext()) {
             String s_topic = it1.next();
             if (s_topic.startsWith(KafkaConstants.TOPICS_TOPIC))
+            {
+                final_message = final_message + s_topic + "*";
+            }
+        }
+        final_message = final_message + messageId;
+        System.out.println(final_message);
+        ProducerRecord<String, String> response = new ProducerRecord<>(topic, final_message);
+        kafkaProducer.send(response);
+
+    }
+
+    public static void handleListUsersRequest(String command)
+    {
+        int topics_count = 0;
+        Set<String> topics = new HashSet<>();
+        TopicUtils topicUtils = new TopicUtils();
+        String commandRemoved = command.substring(11);
+        String parts[] = commandRemoved.split("\\*");
+        String nickname = parts[0];
+        String messageId = parts[1];
+        System.out.println(nickname);
+        //System.out.println(messageId);
+        try {
+            topics = topicUtils.getTopics();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        //System.out.println(final_message);
+        String topic = KafkaConstants.FETCHUSERS_TOPIC + "-" + nickname;
+        //System.out.println(topic);
+        Iterator<String> it = topics.iterator();
+
+        while(it.hasNext()) {
+            String single_topic = it.next();
+            if (single_topic.startsWith(KafkaConstants.SERVER_CLIENT_TOPIC))
+            {
+                topics_count++;
+            }
+        }
+        String final_message = topics_count + "*";
+
+        Iterator<String> it1 = topics.iterator();
+        while(it1.hasNext()) {
+            String s_topic = it1.next();
+            if (s_topic.startsWith(KafkaConstants.SERVER_CLIENT_TOPIC))
             {
                 final_message = final_message + s_topic + "*";
             }

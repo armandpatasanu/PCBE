@@ -46,6 +46,7 @@ public class ChatClientMain {
 
         } while (!isLoggedIn);
         consumer.subscribe(Collections.singleton(KafkaConstants.FETCHTOPICS_TOPIC + "-" + nickname));
+        consumer.subscribe(Collections.singleton(KafkaConstants.FETCHUSERS_TOPIC + "-" + nickname));
         client = new ChatClient(userId, topic, nickname);
         Thread t = new Thread(client);
         t.start();
@@ -106,7 +107,7 @@ public class ChatClientMain {
         sleep(1500);
         //System.out.println(message_id);
         do {
-            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
             //System.out.println("Polling");
             for (ConsumerRecord<String, String> r: records)
             {
@@ -150,6 +151,36 @@ public class ChatClientMain {
     }
 
     private static void listUsers() {
+
+        String searched_msg ="";
+        boolean condition = false;
+        UUID message_id = UUID.randomUUID();
+        ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "FETCHUSERS/" + nickname + "*" + message_id.toString());
+        kafkaProducer.send(record);
+
+        sleep(1500);
+        //System.out.println(message_id);
+        do {
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+            //System.out.println("Polling");
+            for (ConsumerRecord<String, String> r: records)
+            {
+                if(r.value().contains(message_id.toString()))
+                {
+                    //System.out.println("Found it!");
+                    condition = true;
+                    searched_msg = r.value();
+                }
+            }
+        }while(!condition);
+
+        String parts[] = searched_msg.split("\\*");
+        int numberOfTopics = Integer.parseInt(parts[0]);
+        System.out.println("Available users are:");
+        for(int i = 1;i<numberOfTopics-1;i++) {
+            String myTopic = parts[i].replace(KafkaConstants.SERVER_CLIENT_TOPIC + "-", "");
+            System.out.println(myTopic);
+        }
 
     }
 }
