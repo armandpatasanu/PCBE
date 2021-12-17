@@ -40,12 +40,9 @@ public class PingHandler extends Thread {
             while (true) {
                 //System.out.printf("Current time = %d", now);
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
-                //System.out.println("Polling");
-                //System.out.println("111111111");
                 for (ConsumerRecord<String, String> record : records) {
                     String nickname = record.value().substring(11);
-
-                    //System.out.println("2222222");
+;
                     for (User user : onlineUsers.keySet()){
                         if (user.getNickname().equals(nickname)){
                             onlineUsers.replace(user,record.timestamp()); ///e bine oare??
