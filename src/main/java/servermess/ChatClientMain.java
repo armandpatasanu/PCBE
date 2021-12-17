@@ -123,7 +123,7 @@ public class ChatClientMain {
         String parts[] = searched_msg.split("\\*");
         int numberOfTopics = Integer.parseInt(parts[0]);
         System.out.println("Available topics are:");
-        for(int i = 1;i<numberOfTopics-1;i++) {
+        for(int i = 1;i<numberOfTopics+1;i++) {
             String myTopic = parts[i].replace(KafkaConstants.TOPICS_TOPIC, "");
             System.out.println(myTopic);
         }
@@ -177,7 +177,7 @@ public class ChatClientMain {
         String parts[] = searched_msg.split("\\*");
         int numberOfTopics = Integer.parseInt(parts[0]);
         System.out.println("Available users are:");
-        for(int i = 1;i<numberOfTopics-1;i++) {
+        for(int i = 1;i<numberOfTopics+1;i++) {
             String myTopic = parts[i].replace(KafkaConstants.SERVER_CLIENT_TOPIC + "-", "");
             System.out.println(myTopic);
         }
