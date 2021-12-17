@@ -22,13 +22,13 @@ import java.util.*;
 public class PingHandler extends Thread {
 
     private final Consumer<String, String> consumer;
-    private static final int MAX_INACTIVE_TIME = 2000;
+    private static final int MAX_INACTIVE_TIME = 5000;
     private long currentTime = System.currentTimeMillis();
-    private final Map<User, Long> onlineUsers;
+    private final AbstractMap<String, Long> onlineUsers;
     private long timestamp = 0;
     //private final ConcurrentHashMap<User, Long> loggedUsers = new ConcurrentHashMap<>();   //memoram userID si timestamp
 
-    public PingHandler(Map<User, Long> users) {
+    public PingHandler(AbstractMap<String, Long> users) {
         consumer = KafkaConfig.getServerConsumer();
         consumer.subscribe(Collections.singleton(KafkaConstants.PING_TOPIC));
         this.onlineUsers = users;  //unde eu adaug nickname si timestapul ??????
@@ -39,24 +39,32 @@ public class PingHandler extends Thread {
         try {
             while (true) {
                 //System.out.printf("Current time = %d", now);
-                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
                 for (ConsumerRecord<String, String> record : records) {
-                    String nickname = record.value().substring(11);
-;
-                    for (User user : onlineUsers.keySet()){
-                        if (user.getNickname().equals(nickname)){
-                            onlineUsers.replace(user,record.timestamp()); ///e bine oare??
+                    String nickname = record.value().substring(5);
+                    //System.out.println(nickname);
+                    if(!onlineUsers.containsKey(nickname))
+                        onlineUsers.put(nickname,record.timestamp());
+                    for (String user : onlineUsers.keySet()){
+                        if (user.equals(nickname)){
+                            //System.out.println(record.timestamp());
+                            if(onlineUsers.get(user) == record.timestamp())
+                                onlineUsers.remove(user);
+                            else
+                                onlineUsers.replace(user,record.timestamp()); ///e bine oare??
                         }
                     }
-                    for(User user : onlineUsers.keySet()) {
-                        System.out.println("key: " + user.getNickname() + "value: " + onlineUsers.get(user));
+                    for(String user : onlineUsers.keySet()) {
+                        System.out.println("{key: " + user + ", value: " + onlineUsers.get(user) + "}");
                     }
-//                    //daca e inactiv
-//                    if(currentTime - record.timestamp() < MAX_INACTIVE_TIME){
-//                        loggedUsers.remove(user.getUserId());   //ar trebui sa fie userID
-//                        ProducerRecord<String, String> logOut = new ProducerRecord<>(KafkaConstants.PING_TOPIC,"User-ul cu ID-ul " + user.getUserId() + "nu mai e activ");
-//                    }
-
+                    //daca e inactiv
+                    for (String user : onlineUsers.keySet()) {
+                        if (currentTime - onlineUsers.get(user) > MAX_INACTIVE_TIME)
+                        {
+                            onlineUsers.remove(user);   //ar trebui sa fie userID
+                            System.out.println(user + " logged out!");
+                        }
+                    }
                     //System.out.printf("offset = %d, key = %s, value = %s%n topic = %s%n", record.offset(), record.key(), record.value(), record.topic());
 
                 }

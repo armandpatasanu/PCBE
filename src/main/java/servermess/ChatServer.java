@@ -9,18 +9,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
 
 public class ChatServer {
 
     private final static Consumer<String, String> consumer = KafkaConfig.getServerConsumer();
     private static final Producer<String, String> kafkaProducer = KafkaConfig.getProducer();
     private static final Logger LOGGER = LoggerFactory.getLogger(Messagereceiver.class);
-    private static Map<User, Long> users = new ConcurrentHashMap<>();
+    private static AbstractMap<String, Long> users = new ConcurrentHashMap<>();
     private static ArrayList<String> topicList = new ArrayList<String>();
 
 
@@ -47,7 +44,7 @@ public class ChatServer {
 
     public static void handleMessages() {
         while (true) {
-            ConsumerRecords<String, String> consumerRecords = consumer.poll(Duration.ofMillis(100));
+            ConsumerRecords<String, String> consumerRecords = consumer.poll(Duration.ofMillis(200));
 
             for (ConsumerRecord<String, String> record : consumerRecords) {
                 String command = record.value();
@@ -95,9 +92,8 @@ public class ChatServer {
         String parts[] = commandRemoved.split("\\*");
         String nickname = parts[0];
         String userId = parts[1];
-        User user = new User(nickname, UUID.fromString(userId));
-        users.put(user, 0L);
-        System.out.println(user.getNickname());
+//      User user = new User(nickname, UUID.fromString(userId));
+        //System.out.println(user.getNickname());
         System.out.println("User:" + userId);
         String topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + nickname;
         System.out.println("Topic" + topic);
