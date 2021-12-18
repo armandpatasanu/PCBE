@@ -64,4 +64,9 @@ public class ChatClient implements Runnable{
         System.out.println("Client has started");
     }
 
+    public MsgReceiver getMessageReceiver()
+    {
+        return this.m;
+    }
+
 }

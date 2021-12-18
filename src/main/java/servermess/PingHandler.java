@@ -23,9 +23,7 @@ public class PingHandler extends Thread {
 
     private final Consumer<String, String> consumer;
     private static final int MAX_INACTIVE_TIME = 5000;
-    private long currentTime = System.currentTimeMillis();
     private final AbstractMap<String, Long> onlineUsers;
-    private long timestamp = 0;
     //private final ConcurrentHashMap<User, Long> loggedUsers = new ConcurrentHashMap<>();   //memoram userID si timestamp
 
     public PingHandler(AbstractMap<String, Long> users) {
@@ -44,29 +42,29 @@ public class PingHandler extends Thread {
                     String nickname = record.value().substring(5);
                     //System.out.println(nickname);
                     if(!onlineUsers.containsKey(nickname))
+                    {
+                        System.out.println("I am here" + nickname);
                         onlineUsers.put(nickname,record.timestamp());
+                    }
                     for (String user : onlineUsers.keySet()){
                         if (user.equals(nickname)){
                             //System.out.println(record.timestamp());
-                            if(onlineUsers.get(user) == record.timestamp())
-                                onlineUsers.remove(user);
-                            else
-                                onlineUsers.replace(user,record.timestamp()); ///e bine oare??
+                            onlineUsers.replace(user,record.timestamp()); ///e bine oare??
                         }
                     }
                     for(String user : onlineUsers.keySet()) {
                         System.out.println("{key: " + user + ", value: " + onlineUsers.get(user) + "}");
                     }
                     //daca e inactiv
-                    for (String user : onlineUsers.keySet()) {
-                        if (currentTime - onlineUsers.get(user) > MAX_INACTIVE_TIME)
-                        {
-                            onlineUsers.remove(user);   //ar trebui sa fie userID
-                            System.out.println(user + " logged out!");
-                        }
-                    }
                     //System.out.printf("offset = %d, key = %s, value = %s%n topic = %s%n", record.offset(), record.key(), record.value(), record.topic());
 
+                }
+                for (String user : onlineUsers.keySet()) {
+                    if (System.currentTimeMillis() - onlineUsers.get(user) > MAX_INACTIVE_TIME)
+                    {
+                        onlineUsers.remove(user);   //ar trebui sa fie userID
+                        System.out.println(user + " logged out!");
+                    }
                 }
             }
         } finally {
