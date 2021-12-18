@@ -1,6 +1,5 @@
 package servermess;
 
-import servermess.User;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 

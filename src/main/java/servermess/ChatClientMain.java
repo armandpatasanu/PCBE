@@ -1,6 +1,7 @@
 package servermess;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -13,7 +14,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+
+import static org.apache.kafka.common.utils.Utils.sleep;
 
 public class ChatClientMain {
 
@@ -24,9 +27,8 @@ public class ChatClientMain {
     private static Map<String, MsgReceiver> topicThreadMap = new HashMap<String, MsgReceiver>();
     private static ArrayList<String> topicList = new ArrayList<String>();
     private static ChatClient client;
-    private static Consumer<String, ArrayList<String>> serverArrayConsumer = KafkaConfig.getArrayConsumer(userId);
-
-
+    private static Consumer<String, String> consumer = KafkaConfig.getConsumer(userId);
+    private static TopicUtils topicCreator = new TopicUtils();
     public static void main(String[] args)
     {
 
@@ -48,6 +50,12 @@ public class ChatClientMain {
             }
 
         } while (!isLoggedIn);
+        if (!topicCreator.checkTopicExist(KafkaConstants.FETCHTOPICS_TOPIC + "-" + nickname))
+            topicCreator.createTopic(KafkaConstants.FETCHTOPICS_TOPIC + "-" + nickname);
+        consumer.subscribe(Collections.singleton(KafkaConstants.FETCHTOPICS_TOPIC + "-" + nickname));
+        if (!topicCreator.checkTopicExist(KafkaConstants.FETCHUSERS_TOPIC + "-" + nickname))
+            topicCreator.createTopic(KafkaConstants.FETCHUSERS_TOPIC + "-" + nickname);
+        consumer.subscribe(Collections.singleton(KafkaConstants.FETCHUSERS_TOPIC + "-" + nickname));
         client = new ChatClient(userId, topic, nickname);
         Thread t = new Thread(client);
         t.start();
@@ -98,7 +106,35 @@ public class ChatClientMain {
     }
 
     public static void listTopics() {
+        String searched_msg ="";
+        boolean condition = false;
+        UUID message_id = UUID.randomUUID();
+        ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "FETCHTOPICS/" + nickname + "*" + message_id.toString());
+        kafkaProducer.send(record);
 
+        sleep(1500);
+        //System.out.println(message_id);
+        do {
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
+            //System.out.println("Polling");
+            for (ConsumerRecord<String, String> r: records)
+            {
+                if(r.value().contains(message_id.toString()))
+                {
+                    //System.out.println("Found it!");
+                    condition = true;
+                    searched_msg = r.value();
+                }
+            }
+        }while(!condition);
+
+        String parts[] = searched_msg.split("\\*");
+        int numberOfTopics = Integer.parseInt(parts[0]);
+        System.out.println("Available topics are:");
+        for(int i = 1;i<numberOfTopics-1;i++) {
+            String myTopic = parts[i].replace(KafkaConstants.TOPICS_TOPIC, "");
+            System.out.println(myTopic);
+        }
     }
 
     public static void sendMessage() {
@@ -161,6 +197,34 @@ public class ChatClientMain {
     }
 
     public static void listUsers() {
+        String searched_msg ="";
+        boolean condition = false;
+        UUID message_id = UUID.randomUUID();
+        ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "FETCHUSERS/" + nickname + "*" + message_id.toString());
+        kafkaProducer.send(record);
 
+        sleep(1500);
+        //System.out.println(message_id);
+        do {
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+            //System.out.println("Polling");
+            for (ConsumerRecord<String, String> r: records)
+            {
+                if(r.value().contains(message_id.toString()))
+                {
+                    //System.out.println("Found it!");
+                    condition = true;
+                    searched_msg = r.value();
+                }
+            }
+        }while(!condition);
+
+        String parts[] = searched_msg.split("\\*");
+        int numberOfTopics = Integer.parseInt(parts[0]);
+        System.out.println("Available users are:");
+        for(int i = 1;i<numberOfTopics-1;i++) {
+            String myTopic = parts[i].replace(KafkaConstants.SERVER_CLIENT_TOPIC + "-", "");
+            System.out.println(myTopic);
+        }
     }
 }
