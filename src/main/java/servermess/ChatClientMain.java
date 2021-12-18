@@ -4,6 +4,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.protocol.types.Field;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -72,7 +73,7 @@ public class ChatClientMain {
                         pickTopic();
                         break;
                     case "4":
-                        pickUser();
+                        sendMessage();
                         break;
                     case "5":
                         System.out.println("Exiting..");
@@ -92,26 +93,63 @@ public class ChatClientMain {
         System.out.println("1. List topics");
         System.out.println("2. List online users");
         System.out.println("3. Join topic");
-        System.out.println("4. Message user");
+        System.out.println("4. Message user or topic");
         System.out.println("5.Exit");
     }
 
-    private static void listTopics() {
+    public static void listTopics() {
 
     }
 
-    private static void pickUser() {
+    public static void sendMessage() {
+        System.out.println("Do you want to message a user or a topic?");
+        System.out.println("1. User");
+        System.out.println("2. Topic");
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(System.in));
+        try {
+            String option = reader.readLine();
+            switch (option)
+            {
+                case "1":
+                    messageTopic();
+                    break;
+                case "2":
+                    messageUser();
+                    break;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 
-    private static void pickTopic() {
+    public static void messageTopic()
+    {
+        System.out.println("Write topic:");
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(System.in));
+        try {
+            String topic = reader.readLine();
+            System.out.println("Write your message:");
+            String message = reader.readLine();
+            ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.TOPICS_TOPIC+"-"+topic, message);
+            kafkaProducer.send(record);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void messageUser()
+    {
+    }
+
+    public static void pickTopic() {
         listTopics();
         System.out.println("Please write an existing topic name or a new one");
         BufferedReader reader = new BufferedReader(
                 new InputStreamReader(System.in));
         try {
-            String option = reader.readLine();
-            int topic = Integer.parseInt(option);
             String topicToAdd = reader.readLine();
             ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "SUBSCRIBE/"+topicToAdd+"*"+nickname);
             kafkaProducer.send(record);
@@ -122,7 +160,7 @@ public class ChatClientMain {
 
     }
 
-    private static void listUsers() {
+    public static void listUsers() {
 
     }
 }
