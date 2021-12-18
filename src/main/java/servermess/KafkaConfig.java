@@ -63,6 +63,7 @@ public class KafkaConfig {
         return consumer;
     }
 
+
     public static Consumer<String, ArrayList<String >> getArrayConsumer(UUID userUUID) {
         Properties properties = new Properties();
         properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConstants.BOOTSTRAP_SERVERS);
