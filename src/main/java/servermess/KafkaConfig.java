@@ -11,9 +11,6 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.protocol.types.Field;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
@@ -47,7 +44,6 @@ public class KafkaConfig {
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,"earliest");
         Consumer<String, String> consumer = new KafkaConsumer<>(properties);
-        //consumer.subscribe(Collections.singleton(KafkaConstants.TOPIC));
         return consumer;
     }
 
@@ -59,7 +55,6 @@ public class KafkaConfig {
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,"earliest");
         Consumer<String, String> consumer = new KafkaConsumer<>(properties);
-        //consumer.subscribe(Collections.singleton(KafkaConstants.TOPIC));
         return consumer;
     }
 
@@ -72,7 +67,6 @@ public class KafkaConfig {
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,"earliest");
         Consumer<String, ArrayList<String>> consumer = new KafkaConsumer<>(properties);
-        //consumer.subscribe(Collections.singleton(KafkaConstants.TOPIC));
         return consumer;
     }
 }

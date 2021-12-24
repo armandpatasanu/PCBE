@@ -5,9 +5,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.logging.log4j.core.tools.picocli.CommandLine;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.*;
@@ -38,7 +35,6 @@ public class ChatServer {
         };
         user.start();
     }
-//verif ca nu exista deja topicul
 
     public static void handleMessages() {
         while (true) {
@@ -58,22 +54,24 @@ public class ChatServer {
                 } else if (command.startsWith("FETCHUSERS/")){
                     handleListUsersRequest(command);
                 }
+                else if (command.startsWith("PM/"))
+                {
+                    handleMessageUserRequest(command);
+
+                }
+                else if (command.startsWith("CHECK/"))
+                {
+                    checkNicknameExists(command);
+                }
+                else if (command.startsWith("TM/"))
+                {
+                    handleMessageTopicRequest(command);
+                }
                 else
                 {
                     System.out.println(record.topic() + " " + record.value());
                 }
             }
-
-            /*consumerRecords.forEach(consumerRecord -> LOGGER.info("Consumer Record:({} {})",
-                    consumerRecord.key(), consumerRecord.value(),
-                    consumerRecord.partition(), consumerRecord.offset()));*/
-
-            //consumer.commitSync();
-
-
-        //consumer.close();
-
-        //LOGGER.info("Done");
         }
     }
 
@@ -97,9 +95,6 @@ public class ChatServer {
         String commandRemoved = command.substring(12);
         String parts[] = commandRemoved.split("\\*");
         String nickname = parts[0];
-        String messageId = parts[1];
-        System.out.println(nickname);
-        //System.out.println(messageId);
         try {
             topics = topicUtils.getTopics();
         } catch (ExecutionException e) {
@@ -107,9 +102,7 @@ public class ChatServer {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        //System.out.println(final_message);
-        String topic = KafkaConstants.FETCHTOPICS_TOPIC + "-" + nickname;
-        //System.out.println(topic);
+        String topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + nickname;
         Iterator<String> it = topics.iterator();
 
         while(it.hasNext()) {
@@ -119,7 +112,7 @@ public class ChatServer {
                 topics_count++;
             }
         }
-        String final_message = topics_count + "*";
+        String final_message = "TOPICS/" + topics_count + "*";
 
         Iterator<String> it1 = topics.iterator();
         while(it1.hasNext()) {
@@ -129,7 +122,6 @@ public class ChatServer {
                 final_message = final_message + s_topic + "*";
             }
         }
-        final_message = final_message + messageId;
         System.out.println(final_message);
         ProducerRecord<String, String> response = new ProducerRecord<>(topic, final_message);
         kafkaProducer.send(response);
@@ -138,15 +130,8 @@ public class ChatServer {
 
     public static void handleListUsersRequest(String command)
     {
-        String commandRemoved = command.substring(11);
-        String parts[] = commandRemoved.split("\\*");
-        String nickname = parts[0];
-        String messageId = parts[1];
-        //System.out.println(nickname);
-        //System.out.println(messageId);
-        //System.out.println(final_message);
-        String topic = KafkaConstants.FETCHUSERS_TOPIC + "-" + nickname;
-        //System.out.println(topic);
+        String nickname = command.substring(11);
+        String topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + nickname;
         int topics_count = 0;
         String userList = "";
         for (String user : users.keySet())
@@ -154,10 +139,53 @@ public class ChatServer {
             userList = userList + user + "*";
             topics_count++;
         }
-        String final_message = topics_count + "*" + userList + messageId;
-        //System.out.println(final_message);
+        String final_message = "USERS/" + topics_count + "*" + userList;
         ProducerRecord<String, String> response = new ProducerRecord<>(topic, final_message);
         kafkaProducer.send(response);
+
+
+    }
+
+    public static void handleMessageUserRequest(String command)
+    {
+        String commandRemoved = command.substring(3);
+        String parts[] = commandRemoved.split("\\*");
+        String userToMsg = parts[0];
+        String msgToSend = parts[1];
+        String sender = parts[2];
+        String topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + sender;
+        if (!users.containsKey(userToMsg))
+        {
+            ProducerRecord<String, String> response = new ProducerRecord<>(topic, "Sorry, " + userToMsg + " is not online!");
+            kafkaProducer.send(response);
+        }
+        else
+        {
+            String msgTopic = KafkaConstants.USER_TOPIC+"-"+userToMsg;
+            ProducerRecord<String, String> message = new ProducerRecord<>(msgTopic, "@"+sender+": " + msgToSend);
+            kafkaProducer.send(message);
+        }
+    }
+
+    public static void handleMessageTopicRequest(String command){
+        String commandRemoved = command.substring(3);
+        String parts[] = commandRemoved.split("\\*");
+        String topicToMsg = parts[0];
+        String msg = parts[1];
+        String sender = parts[2];
+        String topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + sender;
+        if (!topicAlreadyExists(topicToMsg))
+        {
+            ProducerRecord<String, String> response = new ProducerRecord<>(topic, "Sorry, the topic " + topicToMsg + " doesn't exist. Please create it first!");
+            kafkaProducer.send(response);
+        }
+        else
+        {
+            String msgTopic = KafkaConstants.TOPICS_TOPIC+"-"+topicToMsg;
+            ProducerRecord<String, String> message = new ProducerRecord<>(msgTopic, "Topic: " + topicToMsg +"\n@"+sender+": " + msg);
+            kafkaProducer.send(message);
+        }
+
 
     }
 
@@ -167,8 +195,6 @@ public class ChatServer {
         String parts[] = commandRemoved.split("\\*");
         String nickname = parts[0];
         String userId = parts[1];
-//      User user = new User(nickname, UUID.fromString(userId));
-        //System.out.println(user.getNickname());
         System.out.println("User:" + userId);
         String topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + nickname;
         System.out.println("Topic" + topic);
@@ -197,5 +223,24 @@ public class ChatServer {
         ProducerRecord<String, String> response = new ProducerRecord<>(topic,"SUBSCRIBE/"+topicToSubscribe);
         kafkaProducer.send(response);
         kafkaProducer.flush();
+    }
+
+    public static void checkNicknameExists(String command)
+    {
+        String commandRemoved = command.substring(6);
+        String parts[] = commandRemoved.split("\\*");
+        String nicknameToCheck = parts[0];
+        String userId = parts[1];
+        String msgId = parts[2];
+        if (users.containsKey(nicknameToCheck))
+        {
+            ProducerRecord<String, String> response = new ProducerRecord<>(KafkaConstants.CHECK_NICK+"-"+userId, "0*" + msgId);
+            kafkaProducer.send(response);
+        }
+        else
+        {
+            ProducerRecord<String, String> response = new ProducerRecord<>(KafkaConstants.CHECK_NICK+"-"+userId, "1*" + msgId);
+            kafkaProducer.send(response);
+        }
     }
 }

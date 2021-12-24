@@ -1,23 +1,13 @@
 package servermess;
 
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.*;
 
 import static org.apache.kafka.common.utils.Utils.sleep;
 
 
 public class ChatClient implements Runnable{
-
-
-    //private static final Logger LOGGER = LoggerFactory.getLogger(Messagereceiver.class);
 
     private static final int GIVE_UP = 100;
     private static final Producer<String, String> kafkaProducer = KafkaConfig.getProducer();
@@ -34,7 +24,7 @@ public class ChatClient implements Runnable{
         TopicUtils topicCreator = new TopicUtils();
         if (!topicCreator.checkTopicExist(topic))
             topicCreator.createTopic(KafkaConstants.SERVER_CLIENT_TOPIC, nickname);
-        m = new MsgReceiver(userId, topic);
+        m = new MsgReceiver(userId, topic, nickname);
         m.start();
         requestUserCreation(nickname, userId);
     }
@@ -62,11 +52,6 @@ public class ChatClient implements Runnable{
     public void run() {
         pingServer();
         System.out.println("Client has started");
-    }
-
-    public MsgReceiver getMessageReceiver()
-    {
-        return this.m;
     }
 
 }

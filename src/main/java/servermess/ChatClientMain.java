@@ -5,15 +5,11 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.protocol.types.Field;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.*;
 
 import static org.apache.kafka.common.utils.Utils.sleep;
@@ -24,24 +20,23 @@ public class ChatClientMain {
     private static String nickname = "";
     private static final UUID userId = UUID.randomUUID();
     private static final Producer<String, String> kafkaProducer = KafkaConfig.getProducer();
-    private static Map<String, MsgReceiver> topicThreadMap = new HashMap<String, MsgReceiver>();
-    private static ArrayList<String> topicList = new ArrayList<String>();
     private static ChatClient client;
-    private static Consumer<String, String> consumer = KafkaConfig.getConsumer(userId);
+    private static Consumer<String, String> consumer = KafkaConfig.getConsumer(UUID.randomUUID());
     private static TopicUtils topicCreator = new TopicUtils();
     public static void main(String[] args)
     {
-
+        if (!topicCreator.checkTopicExist(KafkaConstants.CHECK_NICK + "-" + userId))
+            topicCreator.createTopic(KafkaConstants.CHECK_NICK + "-" + userId);
+        consumer.subscribe(Collections.singleton(KafkaConstants.CHECK_NICK + "-" + userId));
         String topic = "";
         do {
 
-            //TO DO de verificat daca exista nicknameul
             System.out.println("Please pick a nickname:");
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(System.in));
             try {
                 nickname = reader.readLine();
-                if (nickname.length() != 0) {
+                if (nickname.length() != 0 && checkNickname(nickname)) {
                     isLoggedIn = true;
                     topic = KafkaConstants.SERVER_CLIENT_TOPIC + "-" + nickname;
                 }
@@ -50,12 +45,6 @@ public class ChatClientMain {
             }
 
         } while (!isLoggedIn);
-        if (!topicCreator.checkTopicExist(KafkaConstants.FETCHTOPICS_TOPIC + "-" + nickname))
-            topicCreator.createTopic(KafkaConstants.FETCHTOPICS_TOPIC + "-" + nickname);
-        consumer.subscribe(Collections.singleton(KafkaConstants.FETCHTOPICS_TOPIC + "-" + nickname));
-        if (!topicCreator.checkTopicExist(KafkaConstants.FETCHUSERS_TOPIC + "-" + nickname))
-            topicCreator.createTopic(KafkaConstants.FETCHUSERS_TOPIC + "-" + nickname);
-        consumer.subscribe(Collections.singleton(KafkaConstants.FETCHUSERS_TOPIC + "-" + nickname));
         client = new ChatClient(userId, topic, nickname);
         Thread t = new Thread(client);
         t.start();
@@ -84,8 +73,12 @@ public class ChatClientMain {
                         sendMessage();
                         break;
                     case "5":
+                        printMenu();
+                        break;
+                    case "6":
                         System.out.println("Exiting..");
                         stop = true;
+                        break;
                     default:
                         System.out.println("Unrecognized command");
                 }
@@ -102,45 +95,20 @@ public class ChatClientMain {
         System.out.println("2. List online users");
         System.out.println("3. Join topic");
         System.out.println("4. Message user or topic");
-        System.out.println("5.Exit");
+        System.out.println("5. Print menu");
+        System.out.println("6. Exit");
     }
 
     public static void listTopics() {
-        String searched_msg ="";
-        boolean condition = false;
-        UUID message_id = UUID.randomUUID();
-        ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "FETCHTOPICS/" + nickname + "*" + message_id.toString());
+        ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "FETCHTOPICS/" + nickname);
         kafkaProducer.send(record);
 
-        sleep(1500);
-        //System.out.println(message_id);
-        do {
-            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
-            //System.out.println("Polling");
-            for (ConsumerRecord<String, String> r: records)
-            {
-                if(r.value().contains(message_id.toString()))
-                {
-                    //System.out.println("Found it!");
-                    condition = true;
-                    searched_msg = r.value();
-                }
-            }
-        }while(!condition);
-
-        String parts[] = searched_msg.split("\\*");
-        int numberOfTopics = Integer.parseInt(parts[0]);
-        System.out.println("Available topics are:");
-        for(int i = 1;i<numberOfTopics-1;i++) {
-            String myTopic = parts[i].replace(KafkaConstants.TOPICS_TOPIC, "");
-            System.out.println(myTopic);
-        }
     }
 
     public static void sendMessage() {
         System.out.println("Do you want to message a user or a topic?");
-        System.out.println("1. User");
-        System.out.println("2. Topic");
+        System.out.println("1. Topic");
+        System.out.println("2. User");
         BufferedReader reader = new BufferedReader(
                 new InputStreamReader(System.in));
         try {
@@ -153,6 +121,8 @@ public class ChatClientMain {
                 case "2":
                     messageUser();
                     break;
+                default:
+                    System.out.println("not an option");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -169,7 +139,7 @@ public class ChatClientMain {
             String topic = reader.readLine();
             System.out.println("Write your message:");
             String message = reader.readLine();
-            ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.TOPICS_TOPIC+"-"+topic, message);
+            ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "TM/" + topic + "*" + message + "*" + nickname);
             kafkaProducer.send(record);
         } catch (IOException e) {
             e.printStackTrace();
@@ -178,6 +148,18 @@ public class ChatClientMain {
 
     public static void messageUser()
     {
+        System.out.println("Select user:");
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(System.in));
+        try {
+            String user = reader.readLine();
+            System.out.println("Write your message:");
+            String msg = reader.readLine();
+            ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "PM/"+user+"*"+msg+"*"+nickname);
+            kafkaProducer.send(record);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void pickTopic() {
@@ -197,34 +179,31 @@ public class ChatClientMain {
     }
 
     public static void listUsers() {
+        ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "FETCHUSERS/" + nickname);
+        kafkaProducer.send(record);
+    }
+
+    public static boolean checkNickname(String nickname)
+    {
         String searched_msg ="";
         boolean condition = false;
         UUID message_id = UUID.randomUUID();
-        ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "FETCHUSERS/" + nickname + "*" + message_id.toString());
+        ProducerRecord<String, String> record = new ProducerRecord<>(KafkaConstants.NICKNAMES_TOPIC, "CHECK/" + nickname + "*" + userId +"*" + message_id.toString());
         kafkaProducer.send(record);
-
         sleep(1500);
         //System.out.println(message_id);
         do {
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
-            //System.out.println("Polling");
             for (ConsumerRecord<String, String> r: records)
             {
                 if(r.value().contains(message_id.toString()))
                 {
-                    //System.out.println("Found it!");
                     condition = true;
                     searched_msg = r.value();
                 }
             }
         }while(!condition);
 
-        String parts[] = searched_msg.split("\\*");
-        int numberOfTopics = Integer.parseInt(parts[0]);
-        System.out.println("Available users are:");
-        for(int i = 1;i<numberOfTopics-1;i++) {
-            String myTopic = parts[i].replace(KafkaConstants.SERVER_CLIENT_TOPIC + "-", "");
-            System.out.println(myTopic);
-        }
+        return !searched_msg.startsWith("0");
     }
 }

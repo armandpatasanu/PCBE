@@ -15,7 +15,6 @@ public class TopicUtils {
         Properties properties = new Properties();
         properties.put(
                 AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConstants.BOOTSTRAP_SERVERS);
-        //Admin admin = Admin.create(properties);
 
         try (Admin admin = Admin.create(properties)) {
 
@@ -32,7 +31,6 @@ public class TopicUtils {
         Properties properties = new Properties();
         properties.put(
                 AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConstants.BOOTSTRAP_SERVERS);
-        //Admin admin = Admin.create(properties);
 
         try (Admin admin = Admin.create(properties)) {
             int partitions = 10;
@@ -62,7 +60,6 @@ public class TopicUtils {
         Properties properties = new Properties();
         properties.put(
                 AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConstants.BOOTSTRAP_SERVERS);
-        //Admin admin = Admin.create(properties);
 
         try (Admin admin = Admin.create(properties)) {
             int partitions = 10;
@@ -94,12 +91,6 @@ public class TopicUtils {
             listTopicsOptions.listInternal(true);
 
             return adminClient.listTopics(listTopicsOptions).names().get();
-//            for (String s:set)
-//            {
-//                if(s.startsWith(KafkaConstants.TOPICS_TOPIC))
-//                    topics = topics + "*" + s;
-//            }
-//            return topics;
         }
         catch (ExecutionException e) {
             e.printStackTrace();
